@@ -28,7 +28,6 @@ Anomaly accuracy ≥ 75%
 
 ### Anomaly Detection and Threshold Evolution
 
-<img width="1409" height="891" alt="Screenshot 2025-10-02 at 7 59 27 AM" src="https://github.com/user-attachments/assets/c64eb160-d465-46d3-89fc-017bc2cf9677" />
 
 
 
@@ -36,11 +35,11 @@ Anomaly accuracy ≥ 75%
 
 The window size (W) of 1000 was chosen based on the need to provide a large enough context to determine a reliable pattern with variations.  This also provides a stable threshold estimation while still being responsive to changes in the data.  The will allow a balance between sensitivity and stability.
 
-The percentile of 97.5 was selected to help determine extreme values along with balancing the sensitivity to anomalies.  The 97.5% threshold captures the top 2.5% of values in each window, and is effective in identifying significant deviations from normal behavior.
+The percentile of 88 was selected lower that the typical threshold to capture more anomalies in the data. Approximately 12% of the points in each window will exceed the threshold and be classified as anomalies.  It balances the need of sensitivity and avoids excessive false positives. It was determined through experimentation to meet the target performance metrics.
 
 ### Results Summary
 
-<img width="395" height="241" alt="Screenshot 2025-10-02 at 8 26 43 AM" src="https://github.com/user-attachments/assets/53866beb-4f8f-4157-88a0-63e47908984f" />
+
 
 ### Detailed Design
 

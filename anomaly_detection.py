@@ -15,7 +15,6 @@ class SlidingWindowAnomalyDetector:
                  method: str = "upper"):
         """
         Initialize the anomaly detector.
-        
         """
         self.window_size = window_size
         self.percentile = percentile
@@ -26,7 +25,7 @@ class SlidingWindowAnomalyDetector:
     def detect_anomalies(self, data: np.array) -> Tuple[np.array, np.array]:
         """
         Detect anomalies using overlapping sliding windows.
-        
+      
         """
         n = len(data)
         predictions = np.zeros(n, dtype=int)
@@ -51,7 +50,14 @@ class SlidingWindowAnomalyDetector:
         thresholds[0:self.window_size] = threshold
         
         # Subsequent windows: Window i covers [i-1, i+W-2]
+        print("Processing windows...", end="")
+        update_interval = max(1, (n - self.window_size) // 20)  # Update 20 times
+        
         for i in range(1, n - self.window_size + 1):
+            if i % update_interval == 0:
+                progress = (i / (n - self.window_size)) * 100
+                print(f"\rProcessing windows... {progress:.0f}%", end="")
+            
             window_start = i
             window_end = i + self.window_size
             new_point_idx = window_end - 1  # The newly added point
@@ -69,6 +75,10 @@ class SlidingWindowAnomalyDetector:
                 predictions[new_point_idx] = int((data[new_point_idx] >= threshold) or 
                                                (data[new_point_idx] <= lower_threshold))
         
+        print(f"\rProcessing windows... 100% complete!")
+        print(f"Total predictions made: {n}")
+        print(f"Detected anomalies: {np.sum(predictions)}")
+        
         self.predictions = predictions
         self.thresholds = thresholds
         return predictions, thresholds
@@ -76,7 +86,7 @@ class SlidingWindowAnomalyDetector:
     def evaluate_performance(self, true_labels: np.array) -> dict:
         """
         Calculate performance metrics.
-        
+
         """
         if self.predictions is None:
             raise ValueError("Must run detect_anomalies first")
@@ -105,19 +115,18 @@ class SlidingWindowAnomalyDetector:
 def load_and_preprocess_data(filepath: str) -> Tuple[np.array, np.array]:
     """
     Load and preprocess the nitrate dataset.
-   
-     
+    
     """
     try:
         df = pd.read_csv(filepath)
         print(f"Dataset shape: {df.shape}")
         print(f"Columns available: {list(df.columns)}")
-        print(f"First few rows:")
+        print(f"\nFirst few rows:")
         print(df.head())
-        print(f"Data types:")
+        print(f"\nData types:")
         print(df.dtypes)
         
-        # Check for ground truth column in conversion
+        # Check for ground truth column
         has_ground_truth = False
         ground_truth_col = None
         possible_gt_names = ['Student_Flag', 'anomaly', 'Anomaly', 'label', 'Label', 'flag', 'Flag']
@@ -128,11 +137,11 @@ def load_and_preprocess_data(filepath: str) -> Tuple[np.array, np.array]:
                 has_ground_truth = True
                 break
         
-        # For conversion - Extract nitrate column - try multiple possible names
+        # Extract nitrate column - try multiple possible names
         nitrate_data = None
         nitrate_col_name = None
         
-        # List of possible column names to try to improve conversion
+        # List of possible column names to try
         possible_names = ['NO3N', 'Nitrate', 'nitrate', 'NO3', 'no3', 'Nitrate_mg_L', 
                          'nitrate_mg_l', 'Nitrate (mg/L)', 'NO3-N']
         
@@ -143,7 +152,7 @@ def load_and_preprocess_data(filepath: str) -> Tuple[np.array, np.array]:
                 print(f"Found nitrate data in column: '{col_name}'")
                 break
         
-        # Try case-insensitive search to improve chances in conversion
+        # If not found by exact match, try case-insensitive search
         if nitrate_data is None:
             for col in df.columns:
                 if 'nitrate' in col.lower() or 'no3' in col.lower():
@@ -152,7 +161,7 @@ def load_and_preprocess_data(filepath: str) -> Tuple[np.array, np.array]:
                     print(f"Found nitrate data in column: '{col}'")
                     break
         
-        # For conversion, list all numeric columns
+        # If still not found, list all numeric columns
         if nitrate_data is None:
             numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
             print(f"No nitrate column found. Available numeric columns:")
@@ -315,7 +324,7 @@ def main():
     print("=== Overlapping Sliding Windows Anomaly Detection ===")
     
     # Load data
-    filepath = "AG_NO3_fill_cells_remove_NAN-2.csv"  
+    filepath = "AG_NO3_fill_cells_remove_NAN.csv"  
     data, ground_truth = load_and_preprocess_data(filepath)
     
     print(f"Data statistics:")
@@ -325,24 +334,21 @@ def main():
     print(f"  Min: {np.min(data):.3f}")
     print(f"  Max: {np.max(data):.3f}")
     print(f"  True anomalies: {np.sum(ground_truth)}\n")
-    
-    # Optimize parameters (optional)
-    # best_w, best_p = optimize_parameters(data, ground_truth)
-    
+   
     # Use chosen parameters
     chosen_window_size = 1000
-    chosen_percentile = 97.5
+    chosen_percentile = 88.0  
     
     print(f"Chosen parameters:")
     print(f"  Window size: {chosen_window_size}")
     print(f"  Percentile: {chosen_percentile}")
     print(f"  Method: upper-tail detection")
     
-    print(f"Rationale:")
+    print(f"\nRationale:")
     print(f"  - Window size {chosen_window_size}: Large enough to capture local patterns")
     print(f"    while remaining adaptive to changes. Represents ~{chosen_window_size/len(data)*100:.1f}% of data.")
     print(f"  - Percentile {chosen_percentile}%: Conservative threshold focusing on truly")
-    print(f"    extreme values while maintaining sensitivity to anomalies.")
+    print(f"    extreme values while maintaining sensitivity to anomalies.\n")
     
     # Create detector and run detection
     detector = SlidingWindowAnomalyDetector(
@@ -357,7 +363,7 @@ def main():
     # Evaluate performance
     metrics = detector.evaluate_performance(ground_truth)
     
-    print(f"=== Performance Metrics ===")
+    print(f"\n=== Performance Metrics ===")
     print(f"True Positives (TP):  {metrics['TP']}")
     print(f"False Positives (FP): {metrics['FP']}")
     print(f"False Negatives (FN): {metrics['FN']}")
@@ -372,12 +378,12 @@ def main():
     print(f"F1-Score:  {metrics['f1_score']:.3f}")
     
     # Check target performance
-    print(f"=== Target Performance Check ===")
+    print(f"\n=== Target Performance Check ===")
     normal_target = metrics['normal_accuracy'] >= 0.80
     anomaly_target = metrics['anomaly_accuracy'] >= 0.75
     print(f"Normal accuracy ≥ 80%: {'YES' if normal_target else 'NO'} ({metrics['normal_accuracy']*100:.1f}%)")
     print(f"Anomaly accuracy ≥ 75%: {'YES' if anomaly_target else 'NO'} ({metrics['anomaly_accuracy']*100:.1f}%)")
-    
+
     if normal_target and anomaly_target:
         print("Both accuracy targets achieved!")
     else:
