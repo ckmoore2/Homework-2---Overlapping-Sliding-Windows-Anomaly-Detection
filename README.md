@@ -30,6 +30,8 @@ Anomaly accuracy ≥ 75%
 
 <img width="1409" height="891" alt="Screenshot 2025-10-02 at 7 59 27 AM" src="https://github.com/user-attachments/assets/c64eb160-d465-46d3-89fc-017bc2cf9677" />
 
+
+
 ### W and q Selection Rationale
 
 The window size (W) of 1000 was chosen based on the need to provide a large enough context to determine a reliable pattern with variations.  This also provides a stable threshold estimation while still being responsive to changes in the data.  The will allow a balance between sensitivity and stability.
@@ -40,5 +42,10 @@ The percentile of 97.5 was selected to help determine extreme values along with 
 
 <img width="395" height="241" alt="Screenshot 2025-10-02 at 8 26 43 AM" src="https://github.com/user-attachments/assets/53866beb-4f8f-4157-88a0-63e47908984f" />
 
-
 ### Detailed Design
+
+One-sidded (upper-tail only) thresholding approach was used to identify the Nitrate anomalies because they typically present as extremely high concentrations.
+
+Labeling all points in the first window will provide an initial baseline for the threshold. This will help to ensure that there are no unlabeled points at the start of the time series.
+
+With removing any of the remaining NaN values, the project will be able to run a cleaned dataset without any interruptions. Having a robust percentile computation method without missing values will help to ensure that the threshold is accurate.
