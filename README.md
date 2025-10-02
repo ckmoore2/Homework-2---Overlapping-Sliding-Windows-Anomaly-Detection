@@ -28,6 +28,7 @@ Anomaly accuracy ≥ 75%
 
 ### Anomaly Detection and Threshold Evolution
 
+<img width="1719" height="1027" alt="Screenshot 2025-10-02 at 9 17 12 AM" src="https://github.com/user-attachments/assets/30c0e4c6-47a1-4ed3-bbd5-999830db77ff" />
 
 
 
@@ -39,6 +40,7 @@ The percentile of 88 was selected lower that the typical threshold to capture mo
 
 ### Results Summary
 
+<img width="492" height="902" alt="Screenshot 2025-10-02 at 9 16 50 AM" src="https://github.com/user-attachments/assets/aca394ac-85c3-4954-b204-c088edd19b54" />
 
 
 ### Detailed Design
