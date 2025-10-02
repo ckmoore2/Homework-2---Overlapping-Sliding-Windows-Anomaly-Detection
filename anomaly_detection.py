@@ -106,39 +106,88 @@ def load_and_preprocess_data(filepath: str) -> Tuple[np.array, np.array]:
     """
     Load and preprocess the nitrate dataset.
    
+     
     """
     try:
-        df = pd.read_csv("AG_NO3_fill_cells_remove_NAN-2.csv")
+        df = pd.read_csv(filepath)
         print(f"Dataset shape: {df.shape}")
-        print(f"Columns: {list(df.columns)}")
+        print(f"Columns available: {list(df.columns)}")
+        print(f"First few rows:")
+        print(df.head())
+        print(f"Data types:")
+        print(df.dtypes)
         
-        # Extract nitrate column
-        if 'Nitrate' in df.columns:
-            nitrate_data = df['Nitrate'].values
-        else:
-            # Try common variations
-            nitrate_cols = [col for col in df.columns if 'nitrate' in col.lower()]
-            if nitrate_cols:
-                nitrate_data = df[nitrate_cols[0]].values
-                print(f"Using column: {nitrate_cols[0]}")
+        # Check for ground truth column in conversion
+        has_ground_truth = False
+        ground_truth_col = None
+        possible_gt_names = ['Student_Flag', 'anomaly', 'Anomaly', 'label', 'Label', 'flag', 'Flag']
+        
+        for gt_name in possible_gt_names:
+            if gt_name in df.columns:
+                ground_truth_col = gt_name
+                has_ground_truth = True
+                break
+        
+        # For conversion - Extract nitrate column - try multiple possible names
+        nitrate_data = None
+        nitrate_col_name = None
+        
+        # List of possible column names to try to improve conversion
+        possible_names = ['NO3N', 'Nitrate', 'nitrate', 'NO3', 'no3', 'Nitrate_mg_L', 
+                         'nitrate_mg_l', 'Nitrate (mg/L)', 'NO3-N']
+        
+        for col_name in possible_names:
+            if col_name in df.columns:
+                nitrate_data = df[col_name].values
+                nitrate_col_name = col_name
+                print(f"Found nitrate data in column: '{col_name}'")
+                break
+        
+        # Try case-insensitive search to improve chances in conversion
+        if nitrate_data is None:
+            for col in df.columns:
+                if 'nitrate' in col.lower() or 'no3' in col.lower():
+                    nitrate_data = df[col].values
+                    nitrate_col_name = col
+                    print(f"Found nitrate data in column: '{col}'")
+                    break
+        
+        # For conversion, list all numeric columns
+        if nitrate_data is None:
+            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            print(f"No nitrate column found. Available numeric columns:")
+            for i, col in enumerate(numeric_cols):
+                print(f"  [{i}] {col} - Mean: {df[col].mean():.3f}, Std: {df[col].std():.3f}")
+            
+            if len(numeric_cols) > 0:
+                # Use the first numeric column
+                nitrate_col_name = numeric_cols[0]
+                nitrate_data = df[nitrate_col_name].values
+                print(f"Using first numeric column: '{nitrate_col_name}'")
             else:
-                raise ValueError("No Nitrate column found")
+                raise ValueError("No numeric columns found in dataset")
         
         # Remove any remaining NaN values
         valid_indices = ~np.isnan(nitrate_data)
         nitrate_data = nitrate_data[valid_indices]
         print(f"Data length after removing NaNs: {len(nitrate_data)}")
+        print(f"Nitrate data range: [{np.min(nitrate_data):.3f}, {np.max(nitrate_data):.3f}]")
         
-        # Create synthetic ground truth for demonstration
-        # In practice, this would come from domain experts or historical data
-        ground_truth = create_synthetic_ground_truth(nitrate_data)
+        # Get ground truth if available
+        if has_ground_truth:
+            ground_truth = df[ground_truth_col].values[valid_indices]
+            print(f"Using ground truth from column: '{ground_truth_col}'")
+            print(f"Total anomalies in ground truth: {np.sum(ground_truth)}")
+        else:
+            # Create synthetic ground truth for demonstration
+            print("No ground truth column found. Creating synthetic ground truth...")
+            ground_truth = create_synthetic_ground_truth(nitrate_data)
         
         return nitrate_data, ground_truth
         
     except Exception as e:
         print(f"Error loading data: {e}")
-        # Generate synthetic data for demonstration
-        print("Generating synthetic nitrate data...")
+        print("Generating synthetic nitrate data for demonstration...")
         return generate_synthetic_data()
 
 def create_synthetic_ground_truth(data: np.array, target_anomalies: int = 77) -> np.array:
@@ -263,10 +312,10 @@ def optimize_parameters(data: np.array, ground_truth: np.array) -> Tuple[int, fl
 
 def main():
     """Main execution function."""
-    print("=== Overlapping Sliding Windows Anomaly Detection ===\n")
+    print("=== Overlapping Sliding Windows Anomaly Detection ===")
     
     # Load data
-    filepath = "AG_NO3_fill_cells_remove_NAN.csv"  # Update path as needed
+    filepath = "AG_NO3_fill_cells_remove_NAN-2.csv"  
     data, ground_truth = load_and_preprocess_data(filepath)
     
     print(f"Data statistics:")
@@ -289,11 +338,11 @@ def main():
     print(f"  Percentile: {chosen_percentile}")
     print(f"  Method: upper-tail detection")
     
-    print(f"\nRationale:")
+    print(f"Rationale:")
     print(f"  - Window size {chosen_window_size}: Large enough to capture local patterns")
     print(f"    while remaining adaptive to changes. Represents ~{chosen_window_size/len(data)*100:.1f}% of data.")
     print(f"  - Percentile {chosen_percentile}%: Conservative threshold focusing on truly")
-    print(f"    extreme values while maintaining sensitivity to anomalies.\n")
+    print(f"    extreme values while maintaining sensitivity to anomalies.")
     
     # Create detector and run detection
     detector = SlidingWindowAnomalyDetector(
@@ -308,7 +357,7 @@ def main():
     # Evaluate performance
     metrics = detector.evaluate_performance(ground_truth)
     
-    print(f"\n=== Performance Metrics ===")
+    print(f"=== Performance Metrics ===")
     print(f"True Positives (TP):  {metrics['TP']}")
     print(f"False Positives (FP): {metrics['FP']}")
     print(f"False Negatives (FN): {metrics['FN']}")
@@ -323,11 +372,11 @@ def main():
     print(f"F1-Score:  {metrics['f1_score']:.3f}")
     
     # Check target performance
-    print(f"\n=== Target Performance Check ===")
+    print(f"=== Target Performance Check ===")
     normal_target = metrics['normal_accuracy'] >= 0.80
     anomaly_target = metrics['anomaly_accuracy'] >= 0.75
-    print(f"Normal accuracy ≥ 80%: {'✓' if normal_target else '✗'} ({metrics['normal_accuracy']*100:.1f}%)")
-    print(f"Anomaly accuracy ≥ 75%: {'✓' if anomaly_target else '✗'} ({metrics['anomaly_accuracy']*100:.1f}%)")
+    print(f"Normal accuracy ≥ 80%: {'YES' if normal_target else 'NO'} ({metrics['normal_accuracy']*100:.1f}%)")
+    print(f"Anomaly accuracy ≥ 75%: {'YES' if anomaly_target else 'NO'} ({metrics['anomaly_accuracy']*100:.1f}%)")
     
     if normal_target and anomaly_target:
         print("Both accuracy targets achieved!")
