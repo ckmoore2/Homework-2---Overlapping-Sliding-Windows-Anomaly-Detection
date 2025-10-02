@@ -4,6 +4,8 @@ In this assignment you will detect anomalies in a Nitrate time series using a th
 ## README.md including:
 
 1. Figure highlighting detected anomalies (e.g., scatter/line plot with anomalies marked)
+<img width="1409" height="891" alt="Screenshot 2025-10-02 at 7 59 27 AM" src="https://github.com/user-attachments/assets/c64eb160-d465-46d3-89fc-017bc2cf9677" />
+
 2. Chosen W and q with rationale (brief)
 3. Normal accuracy and Anomaly accuracy (with TP, FP, FN, TN counts)
-4 .Any design choices (one-sided vs two-sided threshold, handling of NaNs, etc.)
+4. Any design choices (one-sided vs two-sided threshold, handling of NaNs, etc.)
